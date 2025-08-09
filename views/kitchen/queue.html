@@ -1,0 +1,305 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="kitchen-container">
+    <div class="kitchen-header">
+        <h1>厨房订单队列</h1>
+        <div class="kitchen-stats">
+            <div class="stat-item">
+                <span class="stat-label">待制作</span>
+                <span class="stat-value" id="pendingCount">{{orders.length}}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">制作中</span>
+                <span class="stat-value" id="preparingCount">0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="orders-queue">
+        {% for order in orders %}
+        <div class="order-card" data-order-id="{{order.id}}" data-status="{{order.status}}">
+            <div class="order-header">
+                <div class="order-info">
+                    <div class="order-number">订单号: {{order.orderNumber}}</div>
+                    <div class="order-table">餐桌: {{order.Table.name || order.Table.number}}</div>
+                    <div class="order-time">下单时间: {{order.createdAt.toLocaleString()}}</div>
+                    {% if order.Member %}
+                    <div class="order-member">会员: {{order.Member.name || order.Member.phone}}</div>
+                    {% endif %}
+                </div>
+                <div class="order-status">
+                    <span class="status-badge status-{{order.status}}">
+                        {% if order.status === 'confirmed' %}待制作{% elif order.status === 'preparing' %}制作中{% else %}{{order.status}}{% endif %}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="order-items">
+                {% for item in order.OrderItems %}
+                <div class="order-item">
+                    <div class="item-info">
+                        <div class="item-name">{{item.Dish.name}}</div>
+                        <div class="item-quantity">x {{item.quantity}}</div>
+                    </div>
+                    <div class="item-notes">
+                        {% if item.notes %}
+                        <div class="notes">备注: {{item.notes}}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="order-actions">
+                {% if order.status === 'confirmed' %}
+                <button class="btn btn-primary" onclick="updateOrderStatus({{order.id}}, 'preparing')">
+                    开始制作
+                </button>
+                {% elif order.status === 'preparing' %}
+                <button class="btn btn-success" onclick="updateOrderStatus({{order.id}}, 'ready')">
+                    制作完成
+                </button>
+                {% endif %}
+                <div class="order-total">
+                    总计: ¥{{order.finalAmount}}
+                </div>
+            </div>
+            
+            {% if order.notes %}
+            <div class="order-notes">
+                <strong>订单备注:</strong> {{order.notes}}
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="no-orders">
+            <div class="no-orders-icon">🍽️</div>
+            <h3>暂无待处理订单</h3>
+            <p>当前没有需要制作的订单</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+// 更新订单状态
+async function updateOrderStatus(orderId, status) {
+    try {
+        const response = await fetch(`/kitchen/order/${orderId}/status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // 更新订单卡片显示
+            const orderCard = document.querySelector(`[data-order-id="${orderId}"]`);
+            if (orderCard) {
+                orderCard.dataset.status = status;
+                
+                // 更新状态徽章
+                const statusBadge = orderCard.querySelector('.status-badge');
+                statusBadge.className = `status-badge status-${status}`;
+                statusBadge.textContent = status === 'preparing' ? '制作中' : '已完成';
+                
+                // 更新操作按钮
+                const actionsContainer = orderCard.querySelector('.order-actions');
+                if (status === 'preparing') {
+                    actionsContainer.innerHTML = `
+                        <button class="btn btn-success" onclick="updateOrderStatus(${orderId}, 'ready')">
+                            制作完成
+                        </button>
+                        <div class="order-total">
+                            总计: ¥${orderCard.querySelector('.order-total').textContent.replace('总计: ¥', '')}
+                        </div>
+                    `;
+                } else if (status === 'ready') {
+                    actionsContainer.innerHTML = `
+                        <div class="order-completed">
+                            <span class="completed-icon">✓</span>
+                            <span>制作完成</span>
+                        </div>
+                        <div class="order-total">
+                            总计: ¥${orderCard.querySelector('.order-total').textContent.replace('总计: ¥', '')}
+                        </div>
+                    `;
+                }
+            }
+            
+            // 更新统计
+            updateStats();
+            
+            // 显示成功消息
+            showNotification('订单状态更新成功', 'success');
+            
+            // 如果订单完成，3秒后移除
+            if (status === 'ready') {
+                setTimeout(() => {
+                    orderCard.style.animation = 'slideOut 0.5s ease';
+                    setTimeout(() => {
+                        orderCard.remove();
+                        checkEmptyState();
+                    }, 500);
+                }, 3000);
+            }
+            
+        } else {
+            showNotification(result.error || '更新失败', 'error');
+        }
+    } catch (error) {
+        console.error('Update order status error:', error);
+        showNotification('更新失败，请重试', 'error');
+    }
+}
+
+// 更新统计数据
+function updateStats() {
+    const confirmedOrders = document.querySelectorAll('.order-card[data-status="confirmed"]');
+    const preparingOrders = document.querySelectorAll('.order-card[data-status="preparing"]');
+    
+    document.getElementById('pendingCount').textContent = confirmedOrders.length;
+    document.getElementById('preparingCount').textContent = preparingOrders.length;
+}
+
+// 检查空状态
+function checkEmptyState() {
+    const ordersQueue = document.querySelector('.orders-queue');
+    const orderCards = ordersQueue.querySelectorAll('.order-card');
+    
+    if (orderCards.length === 0) {
+        ordersQueue.innerHTML = `
+            <div class="no-orders">
+                <div class="no-orders-icon">🍽️</div>
+                <h3>暂无待处理订单</h3>
+                <p>当前没有需要制作的订单</p>
+            </div>
+        `;
+    }
+}
+
+// 定时刷新订单
+function startOrderRefresh() {
+    setInterval(async () => {
+        try {
+            const response = await fetch('/kitchen/queue');
+            const html = await response.text();
+            
+            // 解析HTML获取新订单
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newOrders = doc.querySelectorAll('.order-card');
+            
+            // 检查是否有新订单
+            const currentOrders = document.querySelectorAll('.order-card');
+            if (newOrders.length > currentOrders.length) {
+                // 显示新订单提示
+                showNotification('有新订单！', 'info');
+                
+                // 播放提示音（如果浏览器支持）
+                try {
+                    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmFgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
+                    audio.play();
+                } catch (e) {
+                    console.log('Audio notification not supported');
+                }
+            }
+            
+            // 更新页面（可选，或等待用户手动刷新）
+            // location.reload();
+            
+        } catch (error) {
+            console.error('Refresh orders error:', error);
+        }
+    }, 30000); // 每30秒检查一次
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    updateStats();
+    startOrderRefresh();
+    
+    // 添加键盘快捷键
+    document.addEventListener('keydown', function(e) {
+        // 空格键开始制作第一个订单
+        if (e.code === 'Space' && e.target === document.body) {
+            e.preventDefault();
+            const firstOrder = document.querySelector('.order-card[data-status="confirmed"] button');
+            if (firstOrder) {
+                firstOrder.click();
+            }
+        }
+    });
+});
+
+// 添加CSS动画
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+    
+    .order-card {
+        transition: all 0.3s ease;
+    }
+    
+    .order-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    
+    .status-confirmed {
+        background-color: #f39c12;
+        color: white;
+    }
+    
+    .status-preparing {
+        background-color: #3498db;
+        color: white;
+    }
+    
+    .status-ready {
+        background-color: #27ae60;
+        color: white;
+    }
+    
+    .order-completed {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #27ae60;
+        font-weight: 500;
+    }
+    
+    .completed-icon {
+        background-color: #27ae60;
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

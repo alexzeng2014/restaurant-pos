@@ -1,0 +1,296 @@
+{% extends "admin/layout.html" %}
+
+{% block content %}
+<div class="section">
+    <div class="section-header">
+        <h2>会员管理</h2>
+        <button class="btn btn-primary" onclick="showAddMemberModal()">
+            <i class="icon">➕</i> 添加会员
+        </button>
+    </div>
+
+    <!-- 搜索框 -->
+    <div class="search-bar">
+        <input type="text" id="memberSearch" placeholder="搜索手机号或姓名..." onkeyup="searchMembers()">
+    </div>
+
+    <!-- 会员列表 -->
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>手机号</th>
+                    <th>姓名</th>
+                    <th>余额</th>
+                    <th>等级</th>
+                    <th>积分</th>
+                    <th>消费次数</th>
+                    <th>最后访问</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="memberTableBody">
+                {% for member in members %}
+                <tr>
+                    <td>{{member.phone}}</td>
+                    <td>{{member.name || '未设置'}}</td>
+                    <td>¥{{member.balance}}</td>
+                    <td>
+                        <span class="level-badge level-{{member.level}}">
+                            {{member.level === 'bronze' ? '青铜' : member.level === 'silver' ? '白银' : member.level === 'gold' ? '黄金' : '铂金'}}
+                        </span>
+                    </td>
+                    <td>{{member.points}}</td>
+                    <td>{{member.visitCount}}</td>
+                    <td>{{member.lastVisit ? member.lastVisit.toLocaleDateString() : '从未'}}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="rechargeMember({{member.id}})">
+                            充值
+                        </button>
+                        <button class="btn btn-sm btn-secondary" onclick="viewMemberDetails({{member.id}})">
+                            详情
+                        </button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="no-data">暂无会员数据</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 添加会员模态框 -->
+<div id="addMemberModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>添加会员</h3>
+            <button class="close-btn" onclick="closeModal('addMemberModal')">&times;</button>
+        </div>
+        <form id="addMemberForm">
+            <div class="form-group">
+                <label for="memberPhone">手机号</label>
+                <input type="tel" id="memberPhone" name="phone" required>
+            </div>
+            <div class="form-group">
+                <label for="memberName">姓名</label>
+                <input type="text" id="memberName" name="name">
+            </div>
+            <div class="form-group">
+                <label for="memberPassword">密码</label>
+                <input type="password" id="memberPassword" name="password">
+            </div>
+            <div class="form-group">
+                <label for="memberBalance">初始余额</label>
+                <input type="number" id="memberBalance" name="balance" step="0.01" value="0">
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addMemberModal')">取消</button>
+                <button type="submit" class="btn btn-primary">添加</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 会员充值模态框 -->
+<div id="rechargeMemberModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>会员充值</h3>
+            <button class="close-btn" onclick="closeModal('rechargeMemberModal')">&times;</button>
+        </div>
+        <form id="rechargeMemberForm">
+            <div class="form-group">
+                <label>会员信息</label>
+                <div id="memberInfo" class="member-info"></div>
+            </div>
+            <div class="form-group">
+                <label for="rechargeAmount">充值金额</label>
+                <input type="number" id="rechargeAmount" name="amount" step="0.01" required>
+            </div>
+            <div class="form-group">
+                <label for="paymentMethod">支付方式</label>
+                <select id="paymentMethod" name="paymentMethod">
+                    <option value="cash">现金</option>
+                    <option value="wechat">微信</option>
+                    <option value="alipay">支付宝</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="rechargeRemark">备注</label>
+                <textarea id="rechargeRemark" name="remark" rows="3"></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('rechargeMemberModal')">取消</button>
+                <button type="submit" class="btn btn-primary">充值</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentMemberId = null;
+
+// 搜索会员
+function searchMembers() {
+    const searchTerm = document.getElementById('memberSearch').value;
+    fetch(`/api/members?search=${searchTerm}`)
+        .then(response => response.json())
+        .then(data => {
+            updateMemberTable(data);
+        })
+        .catch(error => {
+            console.error('Search error:', error);
+        });
+}
+
+// 更新会员表格
+function updateMemberTable(members) {
+    const tbody = document.getElementById('memberTableBody');
+    tbody.innerHTML = '';
+    
+    if (members.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="no-data">暂无会员数据</td></tr>';
+        return;
+    }
+    
+    members.forEach(member => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${member.phone}</td>
+            <td>${member.name || '未设置'}</td>
+            <td>¥${member.balance}</td>
+            <td>
+                <span class="level-badge level-${member.level}">
+                    ${member.level === 'bronze' ? '青铜' : member.level === 'silver' ? '白银' : member.level === 'gold' ? '黄金' : '铂金'}
+                </span>
+            </td>
+            <td>${member.points}</td>
+            <td>${member.visitCount}</td>
+            <td>${member.lastVisit ? new Date(member.lastVisit).toLocaleDateString() : '从未'}</td>
+            <td>
+                <button class="btn btn-sm btn-primary" onclick="rechargeMember(${member.id})">
+                    充值
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="viewMemberDetails(${member.id})">
+                    详情
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// 显示添加会员模态框
+function showAddMemberModal() {
+    document.getElementById('addMemberModal').style.display = 'block';
+}
+
+// 充值会员
+function rechargeMember(memberId) {
+    currentMemberId = memberId;
+    
+    // 获取会员信息
+    fetch(`/api/members`)
+        .then(response => response.json())
+        .then(members => {
+            const member = members.find(m => m.id === memberId);
+            if (member) {
+                document.getElementById('memberInfo').innerHTML = `
+                    <div>手机号: ${member.phone}</div>
+                    <div>姓名: ${member.name || '未设置'}</div>
+                    <div>当前余额: ¥${member.balance}</div>
+                `;
+                document.getElementById('rechargeMemberModal').style.display = 'block';
+            }
+        });
+}
+
+// 查看会员详情
+function viewMemberDetails(memberId) {
+    // 这里可以实现详情页面
+    alert('会员详情功能开发中...');
+}
+
+// 关闭模态框
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+// 添加会员表单提交
+document.getElementById('addMemberForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    try {
+        const response = await fetch('/api/members', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('会员添加成功');
+            closeModal('addMemberModal');
+            searchMembers(); // 刷新列表
+        } else {
+            alert(result.error || '添加失败');
+        }
+    } catch (error) {
+        console.error('Add member error:', error);
+        alert('添加失败，请重试');
+    }
+});
+
+// 会员充值表单提交
+document.getElementById('rechargeMemberForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    try {
+        const response = await fetch(`/api/members/${currentMemberId}/recharge`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`充值成功！新余额: ¥${result.newBalance}`);
+            closeModal('rechargeMemberModal');
+            searchMembers(); // 刷新列表
+        } else {
+            alert(result.error || '充值失败');
+        }
+    } catch (error) {
+        console.error('Recharge error:', error);
+        alert('充值失败，请重试');
+    }
+});
+
+// 点击模态框外部关闭
+window.onclick = function(event) {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+}
+</script>
+{% endblock %}

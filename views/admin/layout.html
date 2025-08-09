@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}} - 餐厅点餐系统</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>餐厅管理系统</h2>
+                <div class="user-info">
+                    <span>{{user.name || user.username}}</span>
+                    <small>{{user.role === 'admin' ? '管理员' : '厨房'}}</small>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/admin/dashboard" class="nav-item {% if request.path === '/admin/dashboard' %}active{% endif %}">
+                    <i class="icon">📊</i> 仪表板
+                </a>
+                <a href="/admin/members" class="nav-item {% if request.path === '/admin/members' %}active{% endif %}">
+                    <i class="icon">👥</i> 会员管理
+                </a>
+                <a href="/admin/member-recharge" class="nav-item {% if request.path === '/admin/member-recharge' %}active{% endif %}">
+                    <i class="icon">💰</i> 会员充值
+                </a>
+                <a href="/admin/dishes" class="nav-item {% if request.path === '/admin/dishes' %}active{% endif %}">
+                    <i class="icon">🍽️</i> 菜品管理
+                </a>
+                <a href="/admin/categories" class="nav-item {% if request.path === '/admin/categories' %}active{% endif %}">
+                    <i class="icon">📁</i> 分类管理
+                </a>
+                <a href="/admin/orders" class="nav-item {% if request.path === '/admin/orders' %}active{% endif %}">
+                    <i class="icon">📋</i> 订单管理
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="/logout" class="logout-btn">退出登录</a>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <div class="content-header">
+                <h1>{{title}}</h1>
+                <div class="header-actions">
+                    <span id="currentTime"></span>
+                </div>
+            </div>
+            <div class="content-body">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script src="/js/admin.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
