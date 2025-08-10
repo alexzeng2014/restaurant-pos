@@ -26,7 +26,14 @@
                     <div class="order-meta">
                         <span>餐桌: ${order.Table ? order.Table.name || order.Table.number : '未知'}</span>
                         <span>时间: ${new Date(order.createdAt).toLocaleString()}</span>
-                        <span>状态: <span class="status-badge status-${order.status}">${getStatusText(order.status)}</span></span>
+                        <span>状态: <span class="status-badge status-${order.status}">${
+        order.status === 'pending' ? '待确认' :
+        order.status === 'confirmed' ? '已确认' :
+        order.status === 'preparing' ? '制作中' :
+        order.status === 'ready' ? '待取餐' :
+        order.status === 'completed' ? '已完成' :
+        order.status === 'cancelled' ? '已取消' : order.status
+    }</span></span>
                     </div>
                 </div>
                 <div class="order-amount">
@@ -57,7 +64,12 @@
                     </div>
                     <div class="summary-row">
                         <span>支付方式:</span>
-                        <span>${getPaymentMethodText(order.paymentMethod)}</span>
+                        <span>${
+        order.paymentMethod === 'cash' ? '现金' :
+        order.paymentMethod === 'wechat' ? '微信支付' :
+        order.paymentMethod === 'alipay' ? '支付宝' :
+        order.paymentMethod === 'member' ? '会员余额' : order.paymentMethod
+    }</span>
                     </div>
                     ${order.notes ? `
                     <div class="order-notes">
@@ -129,7 +141,14 @@ function filterOrders() {
 
 // 更新订单状态
 async function updateOrderStatus(orderId, newStatus) {
-    if (!confirm(\`确定要将订单状态更新为 "\${getStatusText(newStatus)}" 吗？\`)) {
+    const statusText = newStatus === 'pending' ? '待确认' :
+        newStatus === 'confirmed' ? '已确认' :
+        newStatus === 'preparing' ? '制作中' :
+        newStatus === 'ready' ? '待取餐' :
+        newStatus === 'completed' ? '已完成' :
+        newStatus === 'cancelled' ? '已取消' : newStatus;
+    
+    if (!confirm(\`确定要将订单状态更新为 "\${statusText}" 吗？\`)) {
         return;
     }
     
@@ -171,5 +190,15 @@ window.onclick = function(event) {
         }
     });
 }
+
+// 阻止模态框内容区域的点击事件冒泡
+document.addEventListener('DOMContentLoaded', function() {
+    const modalContents = document.querySelectorAll('.modal-content');
+    modalContents.forEach(content => {
+        content.addEventListener('click', function(event) {
+            event.stopPropagation();
+        });
+    });
+});
 </script>
 ` }) %>

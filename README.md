@@ -77,9 +77,9 @@
 
 安装完成后，可以通过以下地址访问系统：
 
-- **管理后台**：http://localhost:3002/admin
+- **管理后台**：http://localhost:3000/admin
 - **厨房端**：http://localhost:3000/kitchen  
-- **点餐端**：http://localhost:3002
+- **点餐端**：http://localhost:3000
 
 ## 🔑 默认账号
 

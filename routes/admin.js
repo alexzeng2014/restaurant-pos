@@ -2,6 +2,16 @@ const express = require('express');
 const router = express.Router();
 const models = require('../models');
 const { requireAuth, requireGuest } = require('../middleware/auth');
+const { Op } = models.Sequelize;
+
+// 管理员根路由 - 重定向到仪表板或登录页面
+router.get('/', (req, res) => {
+  if (req.session.user && req.session.user.role === 'admin') {
+    res.redirect('/admin/dashboard');
+  } else {
+    res.redirect('/admin/login');
+  }
+});
 
 // 管理员登录页面
 router.get('/login', requireGuest, (req, res) => {
@@ -17,8 +27,8 @@ router.get('/dashboard', requireAuth(['admin']), async (req, res) => {
     
     const todayStats = await models.Order.findAll({
       where: {
-        createdAt: { [models.Sequelize.Op.gte]: today },
-        status: { [models.Sequelize.Op.ne]: 'cancelled' }
+        createdAt: { [Op.gte]: today },
+        status: { [Op.ne]: 'cancelled' }
       },
       attributes: [
         [models.Sequelize.fn('COUNT', models.Sequelize.col('id')), 'orderCount'],
@@ -53,6 +63,7 @@ router.get('/dashboard', requireAuth(['admin']), async (req, res) => {
     res.render('admin/dashboard.ejs', {
       title: '管理员仪表板',
       user: req.session.user,
+      req: req,
       todayStats: todayStats[0] || { orderCount: 0, totalAmount: 0 },
       memberStats: memberStats[0] || { totalMembers: 0, totalBalance: 0 },
       topDishes: topDishes
@@ -74,6 +85,7 @@ router.get('/members', requireAuth(['admin']), async (req, res) => {
     res.render('admin/members.ejs', {
       title: '会员管理',
       user: req.session.user,
+      req: req,
       members: members
     });
   } catch (error) {
@@ -86,7 +98,8 @@ router.get('/members', requireAuth(['admin']), async (req, res) => {
 router.get('/member-recharge', requireAuth(['admin']), (req, res) => {
   res.render('admin/member-recharge.ejs', {
     title: '会员充值',
-    user: req.session.user
+    user: req.session.user,
+    req: req
   });
 });
 
@@ -106,6 +119,7 @@ router.get('/dishes', requireAuth(['admin']), async (req, res) => {
     res.render('admin/dishes.ejs', {
       title: '菜品管理',
       user: req.session.user,
+      req: req,
       dishes: dishes,
       categories: categories
     });
@@ -126,6 +140,7 @@ router.get('/categories', requireAuth(['admin']), async (req, res) => {
     res.render('admin/categories.ejs', {
       title: '分类管理',
       user: req.session.user,
+      req: req,
       categories: categories
     });
   } catch (error) {
@@ -149,6 +164,7 @@ router.get('/orders', requireAuth(['admin']), async (req, res) => {
     res.render('admin/orders.ejs', {
       title: '订单管理',
       user: req.session.user,
+      req: req,
       orders: orders
     });
   } catch (error) {

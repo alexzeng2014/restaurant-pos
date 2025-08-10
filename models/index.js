@@ -47,7 +47,8 @@ const models = {
   OrderItem,
   RechargeRecord,
   DishCategory,
-  sequelize
+  sequelize,
+  Sequelize
 };
 
 module.exports = models;

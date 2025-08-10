@@ -2,6 +2,16 @@ const express = require('express');
 const router = express.Router();
 const models = require('../models');
 const { requireAuth } = require('../middleware/auth');
+const { Op } = models.Sequelize;
+
+// 厨房根路由 - 重定向到订单队列或登录页面
+router.get('/', (req, res) => {
+  if (req.session.user && req.session.user.role === 'kitchen') {
+    res.redirect('/kitchen/queue');
+  } else {
+    res.redirect('/kitchen/login');
+  }
+});
 
 // 厨房登录页面
 router.get('/login', (req, res) => {
@@ -13,7 +23,7 @@ router.get('/queue', requireAuth(['kitchen']), async (req, res) => {
   try {
     const orders = await models.Order.findAll({
       where: {
-        status: { [models.Sequelize.Op.in]: ['confirmed', 'preparing'] }
+        status: { [Op.in]: ['confirmed', 'preparing'] }
       },
       include: [
         { model: models.Table },

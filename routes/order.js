@@ -72,7 +72,8 @@ router.get('/checkout', async (req, res) => {
     
     res.render('order/checkout.ejs', {
       title: '结账',
-      table: table
+      table: table,
+      currentMember: req.session.member || null
     });
   } catch (error) {
     console.error('Checkout error:', error);

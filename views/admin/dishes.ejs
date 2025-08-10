@@ -252,5 +252,15 @@ window.onclick = function(event) {
         }
     });
 }
+
+// 阻止模态框内容区域的点击事件冒泡
+document.addEventListener('DOMContentLoaded', function() {
+    const modalContents = document.querySelectorAll('.modal-content');
+    modalContents.forEach(content => {
+        content.addEventListener('click', function(event) {
+            event.stopPropagation();
+        });
+    });
+});
 </script>
 ` }) %>

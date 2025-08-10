@@ -3,6 +3,7 @@ const router = express.Router();
 const models = require('../models');
 const { requireAuth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
+const { Op } = models.Sequelize;
 
 // 会员管理API
 router.get('/members', requireAuth(['admin']), async (req, res) => {
@@ -11,9 +12,9 @@ router.get('/members', requireAuth(['admin']), async (req, res) => {
     let whereClause = { isActive: true };
     
     if (search) {
-      whereClause[models.Sequelize.Op.or] = [
-        { phone: { [models.Sequelize.Op.like]: `%${search}%` } },
-        { name: { [models.Sequelize.Op.like]: `%${search}%` } }
+      whereClause[Op.or] = [
+        { phone: { [Op.like]: `%${search}%` } },
+        { name: { [Op.like]: `%${search}%` } }
       ];
     }
     

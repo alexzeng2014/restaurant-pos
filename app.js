@@ -9,7 +9,16 @@ const config = require('./config/app');
 const app = express();
 
 // 安全中间件
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrcAttr: ["'unsafe-inline'"]
+    }
+  }
+}));
 
 // 限流中间件
 const limiter = rateLimit({
