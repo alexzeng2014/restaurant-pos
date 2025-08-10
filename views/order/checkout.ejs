@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>结账 - 餐厅点餐系统</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/order.css">
+</head>
+<body>
+    <div class="order-container">
+        <div class="order-header">
+            <div class="table-info">
+                <span>餐桌: <%= table.name || table.number %></span>
+                <a href="/order/menu?tableId=<%= table.id %>" class="change-table">返回菜单</a>
+            </div>
+            <div class="user-section">
+                <div id="userInfo">
+                    <!-- 用户信息将通过JS动态更新 -->
+                </div>
+            </div>
+        </div>
+
+        <div class="checkout-container">
+            <div class="checkout-content">
+                <h2>订单结算</h2>
+                
+                <!-- 订单详情 -->
+                <div class="order-details">
+                    <h3>订单详情</h3>
+                    <div class="order-items" id="orderItems">
+                        <!-- 订单项将通过JS动态加载 -->
+                    </div>
+                </div>
+
+                <!-- 结算信息 -->
+                <div class="checkout-summary">
+                    <div class="summary-row">
+                        <span>小计:</span>
+                        <span id="subtotal">¥0.00</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>服务费:</span>
+                        <span id="serviceFee">¥0.00</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>总计:</span>
+                        <span id="totalAmount">¥0.00</span>
+                    </div>
+                    <% if (currentMember) { %>
+                    <div class="member-balance">
+                        <span>会员余额:</span>
+                        <span>¥<%= currentMember.balance %></span>
+                    </div>
+                    <% } %>
+                </div>
+
+                <!-- 支付方式 -->
+                <div class="payment-methods">
+                    <h3>支付方式</h3>
+                    <div class="payment-options">
+                        <label class="payment-option">
+                            <input type="radio" name="paymentMethod" value="cash" checked>
+                            <span class="payment-icon">💵</span>
+                            <span class="payment-name">现金</span>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="paymentMethod" value="wechat">
+                            <span class="payment-icon">💚</span>
+                            <span class="payment-name">微信</span>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="paymentMethod" value="alipay">
+                            <span class="payment-icon">💙</span>
+                            <span class="payment-name">支付宝</span>
+                        </label>
+                        <% if (currentMember) { %>
+                        <label class="payment-option">
+                            <input type="radio" name="paymentMethod" value="member">
+                            <span class="payment-icon">💎</span>
+                            <span class="payment-name">会员余额</span>
+                        </label>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- 备注 -->
+                <div class="order-notes">
+                    <label for="orderNotes">订单备注</label>
+                    <textarea id="orderNotes" rows="3" placeholder="如有特殊要求，请在此备注..."></textarea>
+                </div>
+
+                <!-- 提交按钮 -->
+                <div class="checkout-actions">
+                    <button class="btn btn-secondary" onclick="backToMenu()">返回菜单</button>
+                    <button class="btn btn-primary btn-lg" onclick="submitOrder()">
+                        <i class="icon">💰</i> 确认下单
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/order.js"></script>
+    <script>
+        let currentMember = <%= currentMember ? JSON.stringify(currentMember) : 'null' %>;
+        let tableId = <%= table.id %>;
+
+        // 加载购物车数据
+        function loadCartData() {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            const orderItems = document.getElementById('orderItems');
+            
+            if (cart.length === 0) {
+                orderItems.innerHTML = '<div class="no-items">购物车为空</div>';
+                return;
+            }
+
+            let subtotal = 0;
+            orderItems.innerHTML = cart.map(item => `
+                <div class="order-item">
+                    <div class="item-info">
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-price">¥${item.price}</div>
+                    </div>
+                    <div class="item-quantity">
+                        <span>数量: ${item.quantity}</span>
+                    </div>
+                    <div class="item-total">
+                        <span>小计: ¥${(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // 计算总计
+            subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const serviceFee = subtotal * 0.1; // 10%服务费
+            const total = subtotal + serviceFee;
+
+            document.getElementById('subtotal').textContent = `¥${subtotal.toFixed(2)}`;
+            document.getElementById('serviceFee').textContent = `¥${serviceFee.toFixed(2)}`;
+            document.getElementById('totalAmount').textContent = `¥${total.toFixed(2)}`;
+        }
+
+        // 返回菜单
+        function backToMenu() {
+            window.location.href = `/order/menu?tableId=${tableId}`;
+        }
+
+        // 提交订单
+        async function submitOrder() {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            if (cart.length === 0) {
+                alert('购物车为空，请先添加菜品');
+                return;
+            }
+
+            const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+            const notes = document.getElementById('orderNotes').value;
+
+            const orderData = {
+                tableId: tableId,
+                items: cart,
+                paymentMethod: paymentMethod,
+                notes: notes
+            };
+
+            try {
+                const response = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(orderData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('订单提交成功！');
+                    localStorage.removeItem('cart'); // 清空购物车
+                    window.location.href = '/order/tables'; // 返回餐桌选择
+                } else {
+                    alert(result.error || '订单提交失败');
+                }
+            } catch (error) {
+                console.error('Submit order error:', error);
+                alert('订单提交失败，请重试');
+            }
+        }
+
+        // 更新用户显示
+        function updateUserDisplay() {
+            const userInfo = document.getElementById('userInfo');
+            if (currentMember) {
+                userInfo.innerHTML = `
+                    <div class="member-info">
+                        <span>欢迎, ${currentMember.name || currentMember.phone}</span>
+                        <span class="member-badge">会员</span>
+                    </div>
+                `;
+            } else {
+                userInfo.innerHTML = `
+                    <div class="guest-info">
+                        <span>游客模式</span>
+                    </div>
+                `;
+            }
+        }
+
+        // 初始化
+        updateUserDisplay();
+        loadCartData();
+    </script>
+</body>
+</html>

@@ -10,7 +10,7 @@ router.get('/', (req, res) => {
 
 // 登录页面
 router.get('/login', requireGuest, (req, res) => {
-  res.render('login.html');
+  res.render('login.ejs');
 });
 
 // 登录处理

@@ -77,9 +77,9 @@
 
 安装完成后，可以通过以下地址访问系统：
 
-- **管理后台**：http://localhost:3000/admin
+- **管理后台**：http://localhost:3002/admin
 - **厨房端**：http://localhost:3000/kitchen  
-- **点餐端**：http://localhost:3000
+- **点餐端**：http://localhost:3002
 
 ## 🔑 默认账号
 
@@ -215,7 +215,7 @@ node setup.js
 
 ```javascript
 module.exports = {
-  port: 3000,              // 服务端口
+  port: 3002,              // 服务端口
   sessionSecret: 'your-secret-key',  // 会话密钥
   uploadDir: './public/uploads',      // 上传目录
   maxFileSize: 5 * 1024 * 1024,       // 最大文件大小
@@ -297,7 +297,7 @@ type logs\error.log
 
 ## 📈 更新日志
 
-### v1.0.0 (2024-01-01)
+### v1.0.0 (2025-08-08)
 - 初始版本发布
 - 完整的点餐系统功能
 - Windows一键部署支持

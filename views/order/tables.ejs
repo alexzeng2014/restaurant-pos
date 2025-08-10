@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>选择餐桌 - 餐厅点餐系统</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/order.css">
+</head>
+<body>
+    <div class="order-container">
+        <div class="order-header">
+            <h1>欢迎使用餐厅点餐系统</h1>
+            <p>请选择您的餐桌</p>
+        </div>
+
+        <div class="tables-grid">
+            <% for (let i = 0; i < tables.length; i++) { const table = tables[i]; %>
+            <div class="table-card" onclick="selectTable(<%= table.id %>)">
+                <div class="table-icon">🪑</div>
+                <div class="table-number"><%= table.number %></div>
+                <% if (table.name) { %>
+                <div class="table-name"><%= table.name %></div>
+                <% } %>
+                <div class="table-capacity">容量: <%= table.capacity %>人</div>
+                <% if (table.area) { %>
+                <div class="table-area"><%= table.area %></div>
+                <% } %>
+            </div>
+            <% } %>
+            <% if (tables.length === 0) { %>
+            <div class="no-tables">暂无可用餐桌</div>
+            <% } %>
+        </div>
+
+        <div class="back-link">
+            <a href="/">返回主页</a>
+        </div>
+    </div>
+
+    <script>
+        function selectTable(tableId) {
+            window.location.href = `/order/menu?tableId=${tableId}`;
+        }
+    </script>
+</body>
+</html>

@@ -10,7 +10,7 @@ router.get('/tables', async (req, res) => {
       order: [['number', 'ASC']]
     });
     
-    res.render('order/tables.html', {
+    res.render('order/tables', {
       title: '选择餐桌',
       tables: tables
     });
@@ -44,11 +44,12 @@ router.get('/menu', async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
     
-    res.render('order/menu.html', {
+    res.render('order/menu', {
       title: '菜单',
       table: table,
       categories: categories,
-      dishes: dishes
+      dishes: dishes,
+      currentMember: req.session.member || null
     });
   } catch (error) {
     console.error('Menu error:', error);
@@ -69,7 +70,7 @@ router.get('/checkout', async (req, res) => {
       return res.status(404).send('餐桌不存在');
     }
     
-    res.render('order/checkout.html', {
+    res.render('order/checkout.ejs', {
       title: '结账',
       table: table
     });

@@ -5,7 +5,7 @@ const { requireAuth, requireGuest } = require('../middleware/auth');
 
 // 管理员登录页面
 router.get('/login', requireGuest, (req, res) => {
-  res.render('login.html', { title: '管理员登录', role: 'admin' });
+  res.render('login.ejs', { title: '管理员登录', role: 'admin' });
 });
 
 // 管理员仪表板
@@ -50,7 +50,7 @@ router.get('/dashboard', requireAuth(['admin']), async (req, res) => {
       raw: true
     });
 
-    res.render('admin/dashboard.html', {
+    res.render('admin/dashboard.ejs', {
       title: '管理员仪表板',
       user: req.session.user,
       todayStats: todayStats[0] || { orderCount: 0, totalAmount: 0 },
@@ -71,7 +71,7 @@ router.get('/members', requireAuth(['admin']), async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
     
-    res.render('admin/members.html', {
+    res.render('admin/members.ejs', {
       title: '会员管理',
       user: req.session.user,
       members: members
@@ -84,7 +84,7 @@ router.get('/members', requireAuth(['admin']), async (req, res) => {
 
 // 会员充值页面
 router.get('/member-recharge', requireAuth(['admin']), (req, res) => {
-  res.render('admin/member-recharge.html', {
+  res.render('admin/member-recharge.ejs', {
     title: '会员充值',
     user: req.session.user
   });
@@ -103,7 +103,7 @@ router.get('/dishes', requireAuth(['admin']), async (req, res) => {
       order: [['sortOrder', 'ASC']]
     });
     
-    res.render('admin/dishes.html', {
+    res.render('admin/dishes.ejs', {
       title: '菜品管理',
       user: req.session.user,
       dishes: dishes,
@@ -123,7 +123,7 @@ router.get('/categories', requireAuth(['admin']), async (req, res) => {
       order: [['sortOrder', 'ASC']]
     });
     
-    res.render('admin/categories.html', {
+    res.render('admin/categories.ejs', {
       title: '分类管理',
       user: req.session.user,
       categories: categories
@@ -146,7 +146,7 @@ router.get('/orders', requireAuth(['admin']), async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
     
-    res.render('admin/orders.html', {
+    res.render('admin/orders.ejs', {
       title: '订单管理',
       user: req.session.user,
       orders: orders

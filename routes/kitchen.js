@@ -5,7 +5,7 @@ const { requireAuth } = require('../middleware/auth');
 
 // 厨房登录页面
 router.get('/login', (req, res) => {
-  res.render('login.html', { title: '厨房登录', role: 'kitchen' });
+  res.render('login.ejs', { title: '厨房登录', role: 'kitchen' });
 });
 
 // 厨房订单队列
@@ -23,7 +23,7 @@ router.get('/queue', requireAuth(['kitchen']), async (req, res) => {
       order: [['createdAt', 'ASC']]
     });
     
-    res.render('kitchen/queue.html', {
+    res.render('kitchen/queue.ejs', {
       title: '厨房订单队列',
       user: req.session.user,
       orders: orders

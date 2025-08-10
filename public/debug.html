@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>调试页面</title>
+</head>
+<body>
+    <h1>购物车调试</h1>
+    <button onclick="testAddToCart()">测试添加到购物车</button>
+    <div id="cart-display"></div>
+    
+    <script src="/js/common.js"></script>
+    <script>
+        console.log('页面加载完成');
+        
+        // 检查必要的对象和函数
+        console.log('storage对象:', typeof storage);
+        console.log('formatCurrency函数:', typeof formatCurrency);
+        console.log('showNotification函数:', typeof showNotification);
+        
+        // 简化的购物车测试
+        function testAddToCart() {
+            try {
+                console.log('开始测试添加到购物车...');
+                
+                // 检查storage对象
+                if (typeof storage === 'undefined') {
+                    throw new Error('storage对象未定义');
+                }
+                
+                // 检查formatCurrency函数
+                if (typeof formatCurrency === 'undefined') {
+                    throw new Error('formatCurrency函数未定义');
+                }
+                
+                // 检查showNotification函数
+                if (typeof showNotification === 'undefined') {
+                    throw new Error('showNotification函数未定义');
+                }
+                
+                // 测试storage功能
+                storage.set('test-cart', [{id: 1, name: '测试菜品', price: 10, quantity: 1}]);
+                const cartItems = storage.get('test-cart');
+                
+                console.log('购物车项目:', cartItems);
+                
+                // 更新显示
+                const display = document.getElementById('cart-display');
+                display.innerHTML = `
+                    <div style="color: green; margin-top: 20px;">
+                        <h3>✅ 测试成功</h3>
+                        <p>Storage对象: 正常</p>
+                        <p>formatCurrency函数: 正常</p>
+                        <p>showNotification函数: 正常</p>
+                        <p>购物车数据: ${JSON.stringify(cartItems)}</p>
+                    </div>
+                `;
+                
+                // 显示通知
+                showNotification('测试成功！', 'success');
+                
+            } catch (error) {
+                console.error('测试失败:', error);
+                const display = document.getElementById('cart-display');
+                display.innerHTML = `
+                    <div style="color: red; margin-top: 20px;">
+                        <h3>❌ 测试失败</h3>
+                        <p>错误: ${error.message}</p>
+                        <p>storage对象: ${typeof storage}</p>
+                        <p>formatCurrency函数: ${typeof formatCurrency}</p>
+                        <p>showNotification函数: ${typeof showNotification}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // 页面加载完成后自动测试
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded事件触发');
+            setTimeout(testAddToCart, 1000);
+        });
+    </script>
+</body>
+</html>

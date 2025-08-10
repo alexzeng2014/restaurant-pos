@@ -37,7 +37,7 @@ app.use(session({
 }));
 
 // 设置模板引擎
-app.set('view engine', 'html');
+app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // 路由

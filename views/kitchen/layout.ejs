@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - 餐厅点餐系统</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/kitchen.css">
+</head>
+<body>
+    <div class="kitchen-layout">
+        <div class="kitchen-header">
+            <div class="header-info">
+                <h1>厨房管理系统</h1>
+                <div class="user-info">
+                    <span><%= user.name || user.username %></span>
+                    <small>厨房</small>
+                </div>
+            </div>
+            <div class="header-actions">
+                <span id="currentTime"></span>
+                <a href="/logout" class="logout-btn">退出</a>
+            </div>
+        </div>
+
+        <div class="kitchen-content">
+            <%- content %>
+        </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script src="/js/kitchen.js"></script>
+    <%- scripts %>
+</body>
+</html>

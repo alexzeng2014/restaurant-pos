@@ -1,0 +1,175 @@
+<%- include('layout.ejs', { title: title, user: user, content: `
+<div class="section">
+    <div class="section-header">
+        <h2>订单管理</h2>
+        <div class="header-filters">
+            <select id="statusFilter" onchange="filterOrders()">
+                <option value="">全部状态</option>
+                <option value="pending">待确认</option>
+                <option value="confirmed">已确认</option>
+                <option value="preparing">制作中</option>
+                <option value="ready">待取餐</option>
+                <option value="completed">已完成</option>
+                <option value="cancelled">已取消</option>
+            </select>
+            <input type="date" id="dateFilter" onchange="filterOrders()">
+        </div>
+    </div>
+
+    <!-- 订单列表 -->
+    <div class="orders-container">
+        ${orders.length > 0 ? orders.map(order => `
+        <div class="order-card" data-status="${order.status}" data-date="${new Date(order.createdAt).toDateString()}">
+            <div class="order-header">
+                <div class="order-info">
+                    <h3>订单 #${order.id}</h3>
+                    <div class="order-meta">
+                        <span>餐桌: ${order.Table ? order.Table.name || order.Table.number : '未知'}</span>
+                        <span>时间: ${new Date(order.createdAt).toLocaleString()}</span>
+                        <span>状态: <span class="status-badge status-${order.status}">${getStatusText(order.status)}</span></span>
+                    </div>
+                </div>
+                <div class="order-amount">
+                    <div class="total-amount">¥${order.finalAmount}</div>
+                    ${order.Member ? `<div class="member-info">${order.Member.name || order.Member.phone}</div>` : ''}
+                </div>
+            </div>
+            
+            <div class="order-details">
+                <div class="order-items">
+                    ${order.OrderItems.map(item => `
+                    <div class="order-item">
+                        <span class="item-name">${item.Dish.name}</span>
+                        <span class="item-quantity">x${item.quantity}</span>
+                        <span class="item-price">¥${item.price}</span>
+                    </div>
+                    `).join('')}
+                </div>
+                
+                <div class="order-summary">
+                    <div class="summary-row">
+                        <span>小计:</span>
+                        <span>¥${order.subtotal}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>服务费:</span>
+                        <span>¥${order.serviceFee}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>支付方式:</span>
+                        <span>${getPaymentMethodText(order.paymentMethod)}</span>
+                    </div>
+                    ${order.notes ? `
+                    <div class="order-notes">
+                        <strong>备注:</strong> ${order.notes}
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+            
+            <div class="order-actions">
+                ${order.status === 'pending' ? `
+                <button class="btn btn-sm btn-primary" onclick="updateOrderStatus(${order.id}, 'confirmed')">确认订单</button>
+                <button class="btn btn-sm btn-danger" onclick="updateOrderStatus(${order.id}, 'cancelled')">取消订单</button>
+                ` : ''}
+                ${order.status === 'confirmed' ? `
+                <button class="btn btn-sm btn-primary" onclick="updateOrderStatus(${order.id}, 'preparing')">开始制作</button>
+                ` : ''}
+                ${order.status === 'preparing' ? `
+                <button class="btn btn-sm btn-primary" onclick="updateOrderStatus(${order.id}, 'ready')">制作完成</button>
+                ` : ''}
+                ${order.status === 'ready' ? `
+                <button class="btn btn-sm btn-primary" onclick="updateOrderStatus(${order.id}, 'completed')">完成订单</button>
+                ` : ''}
+                <button class="btn btn-sm btn-secondary" onclick="printOrder(${order.id})">打印订单</button>
+            </div>
+        </div>
+        `).join('') : '<div class="no-data">暂无订单数据</div>'}
+    </div>
+</div>
+`, scripts: `
+<script>
+// 获取状态文本
+function getStatusText(status) {
+    const statusMap = {
+        'pending': '待确认',
+        'confirmed': '已确认',
+        'preparing': '制作中',
+        'ready': '待取餐',
+        'completed': '已完成',
+        'cancelled': '已取消'
+    };
+    return statusMap[status] || status;
+}
+
+// 获取支付方式文本
+function getPaymentMethodText(method) {
+    const methodMap = {
+        'cash': '现金',
+        'wechat': '微信支付',
+        'alipay': '支付宝',
+        'member': '会员余额'
+    };
+    return methodMap[method] || method;
+}
+
+// 筛选订单
+function filterOrders() {
+    const statusFilter = document.getElementById('statusFilter').value;
+    const dateFilter = document.getElementById('dateFilter').value;
+    const orderCards = document.querySelectorAll('.order-card');
+    
+    orderCards.forEach(card => {
+        const statusMatch = !statusFilter || card.dataset.status === statusFilter;
+        const dateMatch = !dateFilter || card.dataset.date === new Date(dateFilter).toDateString();
+        
+        card.style.display = statusMatch && dateMatch ? 'block' : 'none';
+    });
+}
+
+// 更新订单状态
+async function updateOrderStatus(orderId, newStatus) {
+    if (!confirm(\`确定要将订单状态更新为 "\${getStatusText(newStatus)}" 吗？\`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(\`/api/orders/\${orderId}/status\`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('状态更新成功');
+            location.reload();
+        } else {
+            alert(result.error || '更新失败');
+        }
+    } catch (error) {
+        console.error('Update order status error:', error);
+        alert('更新失败，请重试');
+    }
+}
+
+// 打印订单
+function printOrder(orderId) {
+    // 这里可以实现打印功能
+    alert('打印功能开发中...');
+}
+
+// 点击模态框外部关闭
+window.onclick = function(event) {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+}
+</script>
+` }) %>

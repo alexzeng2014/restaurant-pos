@@ -1,15 +1,16 @@
 const { Sequelize } = require('sequelize');
 const sequelize = require('../config/database');
 
-const SystemUser = require('./SystemUser');
-const Member = require('./Member');
-const Category = require('./Category');
-const Dish = require('./Dish');
-const Table = require('./Table');
-const Order = require('./Order');
-const OrderItem = require('./OrderItem');
-const RechargeRecord = require('./RechargeRecord');
-const DishCategory = require('./DishCategory');
+// 初始化模型
+const SystemUser = require('./SystemUser')(sequelize, Sequelize.DataTypes);
+const Member = require('./Member')(sequelize, Sequelize.DataTypes);
+const Category = require('./Category')(sequelize, Sequelize.DataTypes);
+const Dish = require('./Dish')(sequelize, Sequelize.DataTypes);
+const Table = require('./Table')(sequelize, Sequelize.DataTypes);
+const Order = require('./Order')(sequelize, Sequelize.DataTypes);
+const OrderItem = require('./OrderItem')(sequelize, Sequelize.DataTypes);
+const RechargeRecord = require('./RechargeRecord')(sequelize, Sequelize.DataTypes);
+const DishCategory = require('./DishCategory')(sequelize, Sequelize.DataTypes);
 
 // 定义模型关联
 SystemUser.hasMany(Member, { foreignKey: 'createdBy' });

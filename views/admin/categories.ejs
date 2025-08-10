@@ -1,0 +1,207 @@
+<%- include('layout.ejs', { title: title, user: user, content: `
+<div class="section">
+    <div class="section-header">
+        <h2>分类管理</h2>
+        <button class="btn btn-primary" onclick="showAddCategoryModal()">
+            <i class="icon">➕</i> 添加分类
+        </button>
+    </div>
+
+    <!-- 分类列表 -->
+    <div class="categories-grid" id="categoriesGrid">
+        ${categories.length > 0 ? categories.map((category, index) => `
+        <div class="category-card">
+            <div class="category-header">
+                <h3>${category.name}</h3>
+                <div class="category-actions">
+                    <button class="btn btn-sm btn-secondary" onclick="moveCategory(${category.id}, 'up')" ${index === 0 ? 'disabled' : ''}>
+                        ↑
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="moveCategory(${category.id}, 'down')" ${index === categories.length - 1 ? 'disabled' : ''}>
+                        ↓
+                    </button>
+                    <button class="btn btn-sm btn-primary" onclick="editCategory(${category.id})">编辑</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteCategory(${category.id})">删除</button>
+                </div>
+            </div>
+            <div class="category-info">
+                <p>${category.description || '暂无描述'}</p>
+                <div class="category-stats">
+                    <span>排序: ${category.sortOrder}</span>
+                    <span>状态: ${category.isActive ? '启用' : '禁用'}</span>
+                </div>
+            </div>
+        </div>
+        `).join('') : '<div class="no-data">暂无分类数据</div>'}
+    </div>
+</div>
+
+<!-- 添加/编辑分类模态框 -->
+<div id="categoryModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="categoryModalTitle">添加分类</h3>
+            <button class="close-btn" onclick="closeModal('categoryModal')">&times;</button>
+        </div>
+        <form id="categoryForm">
+            <div class="form-group">
+                <label for="categoryName">分类名称</label>
+                <input type="text" id="categoryName" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="categoryDescription">分类描述</label>
+                <textarea id="categoryDescription" name="description" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="categorySortOrder">排序顺序</label>
+                <input type="number" id="categorySortOrder" name="sortOrder" min="0" required>
+                <small>数字越小，排序越靠前</small>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="categoryIsActive" name="isActive" checked>
+                    启用分类
+                </label>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('categoryModal')">取消</button>
+                <button type="submit" class="btn btn-primary">保存</button>
+            </div>
+        </form>
+    </div>
+</div>
+`, scripts: `
+<script>
+let currentCategoryId = null;
+
+// 显示添加分类模态框
+function showAddCategoryModal() {
+    currentCategoryId = null;
+    document.getElementById('categoryModalTitle').textContent = '添加分类';
+    document.getElementById('categoryForm').reset();
+    document.getElementById('categoryModal').style.display = 'block';
+}
+
+// 编辑分类
+async function editCategory(categoryId) {
+    currentCategoryId = categoryId;
+    document.getElementById('categoryModalTitle').textContent = '编辑分类';
+    
+    try {
+        const response = await fetch('/api/categories');
+        const categories = await response.json();
+        const category = categories.find(c => c.id === categoryId);
+        
+        if (category) {
+            document.getElementById('categoryName').value = category.name;
+            document.getElementById('categoryDescription').value = category.description || '';
+            document.getElementById('categorySortOrder').value = category.sortOrder;
+            document.getElementById('categoryIsActive').checked = category.isActive;
+            
+            document.getElementById('categoryModal').style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Edit category error:', error);
+        alert('加载分类信息失败');
+    }
+}
+
+// 删除分类
+async function deleteCategory(categoryId) {
+    if (!confirm('确定要删除这个分类吗？删除后相关菜品将变为未分类状态。')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(\`/api/categories/\${categoryId}\`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('删除成功');
+            location.reload();
+        } else {
+            alert(result.error || '删除失败');
+        }
+    } catch (error) {
+        console.error('Delete category error:', error);
+        alert('删除失败，请重试');
+    }
+}
+
+// 移动分类排序
+async function moveCategory(categoryId, direction) {
+    try {
+        const response = await fetch(\`/api/categories/\${categoryId}/move\`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ direction })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            location.reload();
+        } else {
+            alert(result.error || '移动失败');
+        }
+    } catch (error) {
+        console.error('Move category error:', error);
+        alert('移动失败，请重试');
+    }
+}
+
+// 关闭模态框
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+// 分类表单提交
+document.getElementById('categoryForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    const url = currentCategoryId ? \`/api/categories/\${currentCategoryId}\` : '/api/categories';
+    const method = currentCategoryId ? 'PUT' : 'POST';
+    
+    try {
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(currentCategoryId ? '更新成功' : '添加成功');
+            closeModal('categoryModal');
+            location.reload();
+        } else {
+            alert(result.error || '操作失败');
+        }
+    } catch (error) {
+        console.error('Category form error:', error);
+        alert('操作失败，请重试');
+    }
+});
+
+// 点击模态框外部关闭
+window.onclick = function(event) {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+}
+</script>
+` }) %>
